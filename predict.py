@@ -11,14 +11,31 @@ from tqdm import tqdm
 
 from aug import get_normalize
 from models.networks import get_generator
+import argparse
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run DeblurGANv2")
+    parser.add_argument("--input_folder",default="")
+    parser.add_argument("--output_folder",default="")
+    parser.add_argument("--weights_path",default="")
+    parser.add_argument("--configs_path",default="")
+
+
+
+
+    return parser.parse_args()
 
 
 class Predictor:
-    def __init__(self, weights_path: str, model_name: str = ''):
-        with open('config/config.yaml',encoding='utf-8') as cfg:
+    def __init__(self, weights_path: str, model_name: str = '',configs_path: str=''):
+
+        with open(configs_path,encoding='utf-8') as cfg:
             config = yaml.load(cfg, Loader=yaml.FullLoader)
+
         model = get_generator(model_name or config['model'])
+
         model.load_state_dict(torch.load(weights_path)['model'])
+
         self.model = model.cuda()
         self.model.train(True)
         # GAN inference should be in train mode to use actual stats in norm layers,
@@ -91,17 +108,19 @@ def process_video(pairs, predictor, output_dir):
 def main(img_pattern: str,
          mask_pattern: Optional[str] = None,
          weights_path='fpn_inception.h5',
-         out_dir='submit/',
+         out_dir='submit/test_img',
          side_by_side: bool = False,
-         video: bool = False):
+         video: bool = False,
+         configs_path:str=''):
     def sorted_glob(pattern):
         return sorted(glob(pattern))
+    
 
     imgs = sorted_glob(img_pattern)
     masks = sorted_glob(mask_pattern) if mask_pattern is not None else [None for _ in imgs]
     pairs = zip(imgs, masks)
     names = sorted([os.path.basename(x) for x in glob(img_pattern)])
-    predictor = Predictor(weights_path=weights_path)
+    predictor = Predictor(weights_path=weights_path,configs_path=configs_path)
 
     os.makedirs(out_dir, exist_ok=True)
     if not video:
@@ -122,21 +141,26 @@ def main(img_pattern: str,
 # def getfiles():
 #     filenames = os.listdir(r'.\dataset1\blur')
 #     print(filenames)
-def get_files():
+def get_files(input_folder):
     list=[]
-    for filepath,dirnames,filenames in os.walk(r'.\dataset1\blur'):
+    for filepath,dirnames,filenames in os.walk(input_folder):
         for filename in filenames:
+            print(f'found {filename}')
             list.append(os.path.join(filepath,filename))
     return list
 
 
 
 
+import ssl
+
 
 if __name__ == '__main__':
+    ssl._create_default_https_context = ssl._create_unverified_context
   #  Fire(main)
 #增加批量处理图片：
-    img_path=get_files()
+    args = parse_args()
+    img_path=get_files(args.input_folder)
     for i in img_path:
-        main(i)
+        main(i,side_by_side=False,out_dir=args.output_folder,weights_path=args.weights_path,configs_path=args.configs_path)
     # main('test_img/tt.mp4')
