@@ -4,3 +4,4 @@
 #fpn_mobilenet.h5
 *.h5
 pretrained_weights/*
+!pretrained_weights/.gitkeep

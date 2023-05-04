@@ -33,7 +33,19 @@ class Predictor:
             config = yaml.load(cfg, Loader=yaml.FullLoader)
 
         model = get_generator(model_name or config['model'])
-
+        #for fpn_inception.h5 only
+        if not os.path.exists(weights_path):
+            file_id='1UXcsRVW-6KF23_TNzxw-xC0SzaMfXOaR'
+            output_path='../DeblurGANv2/pretrained_weights/fpn_inception.h5'
+            os.system(f'wget --load-cookies /tmp/cookies.txt \
+                      \"https://docs.google.com/uc?export=download&confirm=$(wget \
+                      --quiet \
+                      --save-cookies /tmp/cookies.txt \
+                      --keep-session-cookies \
+                      --no-check-certificate \'https://docs.google.com/uc?export=download&id={file_id}\' \
+                      -O- | sed -rn \'s/.*confirm=([0-9A-Za-z_]+).*/\1\n/p\')&id={file_id}" \
+                      -O {output_path} \
+                      && rm -rf /tmp/cookies.txt')
         model.load_state_dict(torch.load(weights_path)['model'])
 
         self.model = model.cuda()
